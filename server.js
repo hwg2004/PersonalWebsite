@@ -11,7 +11,7 @@ const { Server } = ssh2;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Generate host key: ssh-keygen -t rsa -b 2048 -f host_key -N ""
-const HOST_KEY = readFileSync(join(__dirname, 'host_key'));
+const HOST_KEY = Buffer.from(process.env.HOST_KEY_B64, 'base64');
 const PORT = process.env.PORT || 2222;
 
 // ─── ANSI helpers ────────────────────────────────────────────────
