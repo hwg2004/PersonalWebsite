@@ -6,13 +6,13 @@ import ssh2 from 'ssh2';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import Jimp from 'jimp';
 
 const { Server } = ssh2;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Generate host key: ssh-keygen -t rsa -b 2048 -f host_key -N ""
 const HOST_KEY = process.env.HOST_KEY;
-
 const PORT = process.env.PORT || 2222;
 
 // ─── ANSI helpers ────────────────────────────────────────────────
@@ -38,7 +38,32 @@ const dim = s => `${c.dim}${s}${c.reset}`;
 const pu = s => `${c.purple}${s}${c.reset}`;
 const bold = s => `${c.bold}${s}${c.reset}`;
 
+// ─── Image to ASCII converter ───────────────────────────────────
+const ASCII_CHARS = ['@', '#', 'S', '%', '?', '*', '+', ';', ':', ',', '.', ' '];
+
+let faceAscii = '';
+
+async function generateAscii(imagePath, width = 60) {
+  const image = await Jimp.read(imagePath);
+  const ratio = image.bitmap.height / image.bitmap.width;
+  const height = Math.floor(width * ratio * 0.5); // terminals are taller than wide
+  image.resize(width, height).grayscale();
+
+  let result = '';
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const pixel = Jimp.intToRGBA(image.getPixelColor(x, y));
+      const brightness = (pixel.r + pixel.g + pixel.b) / 3;
+      const charIdx = Math.floor((brightness / 255) * (ASCII_CHARS.length - 1));
+      result += ASCII_CHARS[charIdx];
+    }
+    result += '\r\n';
+  }
+  return result;
+}
 // ─── Content ─────────────────────────────────────────────────────
+generateAscii('./me.jpg').then(art => { faceAscii = art; });
+
 const PROJECTS = [
   {
     name: 'MiroFish',
@@ -216,7 +241,8 @@ function handleSession(stream) {
   const PROMPT = () =>
     `\r${g('harry')}${dim('@')}${b('portfolio')}${dim(':~$ ')}`;
 
-  const BOOT = [
+  const BOOT = () =>[
+    faceAscii,
     '',
     dim('─────────────────────────────────────────────────'),
     ` ${bold(g('harry gallen'))} ${dim('// cornell cs \'27')}`,
@@ -229,7 +255,7 @@ function handleSession(stream) {
     '',
   ];
 
-  stream.write(BOOT.map(l => l + '\r\n').join(''));
+  stream.write(BOOT().map(l => l + '\r\n').join(''));
   stream.write(PROMPT());
 
   stream.on('data', data => {
