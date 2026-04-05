@@ -6,7 +6,7 @@ import ssh2 from 'ssh2';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import Jimp from 'jimp';
+import sharp from 'sharp';
 
 const { Server } = ssh2;
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -44,16 +44,13 @@ const ASCII_CHARS = ['@', '#', 'S', '%', '?', '*', '+', ';', ':', ',', '.', ' ']
 let faceAscii = '';
 
 async function generateAscii(imagePath, width = 60) {
-  const image = await Jimp.read(imagePath);
-  const ratio = image.bitmap.height / image.bitmap.width;
-  const height = Math.floor(width * ratio * 0.5); // terminals are taller than wide
-  image.resize(width, height).grayscale();
+  const image = sharp(imagePath).resize(width).grayscale();
+  const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
 
   let result = '';
-  for (let y = 0; y < height; y++) {
+  for (let y = 0; y < info.height; y++) {
     for (let x = 0; x < width; x++) {
-      const pixel = Jimp.intToRGBA(image.getPixelColor(x, y));
-      const brightness = (pixel.r + pixel.g + pixel.b) / 3;
+      const brightness = data[y * width + x];
       const charIdx = Math.floor((brightness / 255) * (ASCII_CHARS.length - 1));
       result += ASCII_CHARS[charIdx];
     }
@@ -61,6 +58,7 @@ async function generateAscii(imagePath, width = 60) {
   }
   return result;
 }
+
 // ─── Content ─────────────────────────────────────────────────────
 generateAscii('./me.jpg').then(art => { faceAscii = art; });
 
