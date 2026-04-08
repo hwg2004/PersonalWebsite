@@ -1,6 +1,7 @@
 // harry.dev — SSH portfolio server
 // Usage: node server.js
 // SSH in: ssh harry@your-server-ip -p 2222
+// ssh -p 48764 harry@shortline.proxy.rlwy.net
 
 import ssh2 from 'ssh2';
 import { readFileSync } from 'fs';
@@ -39,7 +40,7 @@ const pu = s => `${c.purple}${s}${c.reset}`;
 const bold = s => `${c.bold}${s}${c.reset}`;
 
 // ─── Image to ASCII converter ───────────────────────────────────
-const ASCII_CHARS = ['@', '#', 'S', '%', '?', '*', '+', ';', ':', ',', '.', ' '];
+const ASCII_CHARS = [' ', '░', '▒', '▓', '█'];
 
 let faceAscii = '';
 
@@ -60,7 +61,7 @@ async function generateAscii(imagePath, width = 60) {
 }
 
 // ─── Content ─────────────────────────────────────────────────────
-generateAscii('./me.jpg').then(art => { faceAscii = art; });
+generateAscii('./me.jpg', 80).then(art => { faceAscii = art; });
 
 const PROJECTS = [
   {
